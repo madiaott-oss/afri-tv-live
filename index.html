@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>IPTVMEDIA</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0e1a;color:#fff;font-family:Arial;text-align:center;padding:20px}
+        h1{font-size:32px;margin-bottom:5px}
+        .subtitle{font-size:18px;color:#00d4ff;margin-bottom:5px}
+        .desc{color:#888;font-size:14px;margin-bottom:30px}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px;max-width:1400px;margin:0 auto}
+        .card{background:#1a1f2e;border-radius:12px;padding:15px;cursor:pointer;transition:0.2s;border:2px solid transparent}
+        .card:hover{background:#2a2f3e;transform:translateY(-5px);border-color:#00d4ff}
+        .card img{width:100%;height:130px;object-fit:contain;background:#000;border-radius:8px;margin-bottom:10px;padding:5px}
+        .card h3{font-size:16px;margin-bottom:5px}
+        .card p{color:#00d4ff;font-size:12px}
+        .filter{margin:30px 0}
+        .filter button{background:#1a1f2e;color:#fff;border:none;padding:12px 25px;margin:5px;border-radius:8px;cursor:pointer;font-size:14px}
+        .filter button.active{background:#00d4ff;color:#000;font-weight:bold}
+        #player{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:none;z-index:999;align-items:center;justify-content:center}
+        #player.show{display:flex}
+        .player-box{position:relative;width:90%;max-width:1200px}
+        #video{width:100%;border-radius:10px}
+        #close{position:absolute;top:-40px;right:0;font-size:50px;cursor:pointer;color:#fff;line-height:1}
+        #close:hover{color:#00d4ff}
+        footer{margin-top:60px;padding:20px;color:#555;font-size:12px}
+    </style>
+</head>
+<body>
+    <h1>📺 IPTVMEDIA</h1>
+    <p class="subtitle">Bienvenue sur votre Bouquet média</p>
+    <p class="desc">+5 chaînes en direct 24h/24 - 100% Gratuit - Cliquez pour lancer</p>
+    
+    <div class="filter">
+        <button class="active" onclick="filterCat('Toutes', this)">Toutes</button>
+        <button onclick="filterCat('Generaliste', this)">Généraliste</button>
+        <button onclick="filterCat('Religieux', this)">Religieux</button>
+        <button onclick="filterCat('Sportif', this)">Sportif</button>
+    </div>
+    
+    <div id="grid" class="grid"></div>
+    
+    <div id="player">
+        <div class="player-box">
+            <div id="close" onclick="closePlayer()">×</div>
+            <video id="video" controls autoplay></video>
+        </div>
+    </div>
+
+    <footer>© 2026 IPTVMEDIA - Tous droits réservés</footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        const channels = [
+            {id:1,name:"ESPOIR TV HD",category:"Generaliste",logo:"logos/espoir.jpg",url:"https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"},
+            {id:2,name:"AFRI TV",category:"Generaliste",logo:"logos/afri.jpg",url:"https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8"},
+            {id:3,name:"ACK TV",category:"Religieux",logo:"https://cdn-icons-png.flaticon.com/512/619/619153.png",url:"https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"},
+            {id:4,name:"LA BORNE MPASA",category:"Religieux",logo:"logos/laborne.jpg",url:"https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"},
+            {id:5,name:"RMC SPORT",category:"Sportif",logo:"https://cdn-icons-png.flaticon.com/512/502/502195.png",url:"https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8"}
+        ];
+
+        let currentCat = 'Toutes';
+        let hls = null;
+
+        function renderChannels() {
+            const grid = document.getElementById('grid');
+            const filtered = currentCat === 'Toutes' ? channels : channels.filter(c => c.category === currentCat);
+            grid.innerHTML = filtered.map(ch => `
+                <div class="card" onclick="playChannel('${ch.url}')">
+                    <img src="${ch.logo}" onerror="this.src='https://via.placeholder.com/300x200/1a1f2e/00d4ff?text=LOGO'">
+                    <h3>${ch.name}</h3>
+                    <p>${ch.category}</p>
+                </div>
+            `).join('');
+        }
+
+        function filterCat(cat, btn) {
+            currentCat = cat;
+            document.querySelectorAll('.filter button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderChannels();
+        }
+
+        function playChannel(url) {
+            const video = document.getElementById('video');
+            document.getElementById('player').classList.add('show');
+            
+            if (hls) hls.destroy();
+            
+            if (Hls.isSupported()) {
+                hls = new Hls();
+                hls.loadSource(url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+                video.play();
+            }
+        }
+
+        function closePlayer() {
+            document.getElementById('player').classList.remove('show');
+            document.getElementById('video').pause();
+            if (hls) hls.destroy();
+        }
+
+        renderChannels();
+    </script>
+</body>
+</html>
