@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin IPTVMEDIA V6.5</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0a0a; color: #fff; font-family: Arial; padding: 20px; }
+      .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #e50914; margin-bottom: 20px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; background: #1a1a1a; color: #fff; border: 1px solid #333; border-radius: 4px; }
+        button { background: #e50914; color: #fff; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px 5px 5px 0; font-weight: bold; }
+        button:hover { background: #f40612; }
+      .btn-secondary { background: #333; }
+      .channel-list { margin-top: 20px; }
+      .channel-item { background: #1a1a1a; padding: 15px; margin: 10px 0; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+      .success { background: #1db954; padding: 10px; margin: 10px 0; border-radius: 4px; display: none; }
+      .error { background: #e50914; padding: 10px; margin: 10px 0; border-radius: 4px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin IPTVMEDIA V6.5</h1>
+        <div id="success" class="success">Chaîne sauvée!</div>
+        <div id="error" class="error">Erreur: Remplis Nom + Lien m3u8</div>
+        
+        <h3>Ajouter / Modifier une chaîne</h3>
+        <input type="text" id="nom" placeholder="Nom de la chaîne : ESPOIR TV HD">
+        <input type="text" id="logo" placeholder="Lien Logo PNG : https://...logo.png">
+        <input type="text" id="flux" placeholder="Lien m3u8 : https://...live.m3u8">
+        <select id="cat">
+            <option value="">Choisir catégorie</option>
+            <option>NEWS</option><option>SPORT</option><option>RELIGION</option>
+            <option>DIVERTISSEMENT</option><option>MUSIQUE</option><option>LOCAL</option><option>AFRIQUE</option>
+        </select>
+        <button onclick="sauver()">Sauver la chaîne</button>
+        <button class="btn-secondary" onclick="exporter()">Télécharger index.html</button>
+        <button class="btn-secondary" onclick="toutSupprimer()">Tout supprimer</button>
+        
+        <div class="channel-list">
+            <h3>Chaînes enregistrées : <span id="count">0</span></h3>
+            <div id="list"></div>
+        </div>
+    </div>
+
+<script>
+let channels = JSON.parse(localStorage.getItem('iptv_channels') || '[]');
+let editIndex = -1;
+
+function afficher() {
+    document.getElementById('list').innerHTML = channels.map((c,i) => `
+        <div class="channel-item">
+            <div><strong>${c.nom}</strong><br><small>${c.cat} | ${c.flux}</small></div>
+            <div>
+                <button onclick="modifier(${i})">Modifier</button>
+                <button class="btn-secondary" onclick="supprimer(${i})">X</button>
+            </div>
+        </div>
+    `).join('');
+    document.getElementById('count').innerText = channels.length;
+}
+
+function sauver() {
+    const ch = {
+        nom: nom.value.trim(),
+        logo: logo.value.trim(),
+        flux: flux.value.trim(),
+        cat: cat.value
+    };
+    if(!ch.nom ||!ch.flux) {
+        showError();
+        return;
+    }
+    
+    if(editIndex >= 0) channels[editIndex] = ch;
+    else channels.push(ch);
+    
+    localStorage.setItem('iptv_channels', JSON.stringify(channels));
+    nom.value = logo.value = flux.value = cat.value = '';
+    editIndex = -1;
+    afficher();
+    showSuccess();
+}
+
+function modifier(i) {
+    editIndex = i;
+    nom.value = channels[i].nom;
+    logo.value = channels[i].logo;
+    flux.value = channels[i].flux;
+    cat.value = channels[i].cat;
+    window.scrollTo(0,0);
+}
+
+function supprimer(i) {
+    if(confirm('Supprimer '+channels[i].nom+'?')) {
+        channels.splice(i,1);
+        localStorage.setItem('iptv_channels', JSON.stringify(channels));
+        afficher();
+    }
+}
+
+function toutSupprimer() {
+    if(confirm('Supprimer TOUTES les chaînes?')) {
+        channels = [];
+        localStorage.setItem('iptv_channels', JSON.stringify(channels));
+        afficher();
+    }
+}
+
+function exporter() {
+    const html = <!DOCTYPE html><html><head><meta charset="UTF-8"><title>IPTVMEDIA</title></head><body><h1>IPTVMEDIA</h1><script>const CHANNELS = ${JSON.stringify(channels, null, 2)};console.log(CHANNELS);<\/script></body></html>;
+    const blob = new Blob([html], {type: 'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'index.html'; a.click();
+}
+
+function showSuccess() {
+    document.getElementById('success').style.display = 'block';
+    document.getElementById('error').style.display = 'none';
+    setTimeout(() => document.getElementById('success').style.display = 'none', 2000);
+}
+
+function showError() {
+    document.getElementById('error').style.display = 'block';
+    setTimeout(() => document.getElementById('error').style.display = 'none', 2000);
+}
+
+afficher();
+</script>
+</body>
+</html>
